@@ -1,3 +1,4 @@
+import { SELF_BUILT_UPDATES_DISABLED } from '../self-built-updates'
 import { app } from 'electron'
 import { isMacInstallRequested } from '../mac-install/updater-mac-install'
 import type { UpdateCheckOptions } from '../../../shared/updater/update-status-types'
@@ -13,7 +14,7 @@ export abstract class UpdaterMenuChecks extends UpdaterScheduling {
     ) {
       return
     }
-    if (!app.isPackaged) {
+    if (!app.isPackaged || SELF_BUILT_UPDATES_DISABLED) {
       this.sendStatus({ state: 'not-available', userInitiated: true })
       return
     }

@@ -1,3 +1,4 @@
+import { SELF_BUILT_UPDATES_DISABLED } from '../self-built-updates'
 import { app } from 'electron'
 import {
   getVersionChannel,
@@ -90,7 +91,7 @@ export abstract class UpdaterBuildSelection extends UpdaterMenuChecks {
 
   /** Pin any published channel/tag, including deliberate downgrades. */
   protected async checkForPinnedBuild(channel: ReleaseChannel, tag: string): Promise<void> {
-    if (!app.isPackaged) {
+    if (!app.isPackaged || SELF_BUILT_UPDATES_DISABLED) {
       this.sendStatus({ state: 'not-available', userInitiated: true })
       return
     }

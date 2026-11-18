@@ -1,3 +1,4 @@
+import { SELF_BUILT_UPDATES_DISABLED } from '../self-built-updates'
 import { app } from 'electron'
 import type { UpdateCheckOptions, UpdateStatus } from '../../../shared/updater/update-status-types'
 import type {
@@ -16,7 +17,7 @@ export abstract class UpdaterRemoteStatus extends UpdaterNudge {
   }
 
   protected getRemoteServerUpdateSupport(): RemoteServerUpdateSupport {
-    if (!app.isPackaged) {
+    if (!app.isPackaged || SELF_BUILT_UPDATES_DISABLED) {
       return {
         installMode: this.updateInstallMode,
         automatic: false,
