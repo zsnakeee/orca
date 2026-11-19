@@ -67,6 +67,8 @@ jobs:
       - name: Package DMG (arm64)
         env:
           ORCA_BUILD_COMMIT: ${{ github.sha }}
+          # Intel host cannot exec the arm64 terminal host; non-CI mode skips only that boot check.
+          CI: 'false'
         run: >
           pnpm exec electron-builder --config config/electron-builder.config.cjs
           --mac dmg --arm64 --publish never
