@@ -1,0 +1,79 @@
+name: My Orca macOS Build (Apple Silicon)
+
+# Personal self-built copy: unsigned (ad-hoc) arm64 DMG of the my-orca branch, uploaded as a run artifact.
+on:
+  push:
+    branches: [my-orca]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: my-orca-mac-build
+  cancel-in-progress: true
+
+jobs:
+  build-mac-arm64:
+    if: github.repository == 'zsnakeee/orca'
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      ORCA_BACKGROUND_LAUNCH: '1'
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/setup@v2
+        with:
+          install: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          check-latest: true
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            mobile/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - uses: ./.github/actions/install-mobile-dependencies
+
+      - name: Pick version label above the newest official release
+        id: ver
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest=$(gh api repos/stablyai/orca/releases/latest --jq .tag_name | sed 's/^v//')
+          echo "version=${latest}-rtl" >>"$GITHUB_OUTPUT"
+          echo "Building version ${latest}-rtl"
+
+      - name: Build native modules
+        run: pnpm run build:native
+
+      - name: Build app
+        run: |
+          pnpm run build:desktop
+          pnpm run build:computer-macos
+          pnpm run build:keyboard-layout-macos
+          pnpm run build:process-footprint-macos
+          pnpm run build:notification-status-macos
+          pnpm run ensure:electron-runtime
+
+      - name: Package DMG (arm64)
+        env:
+          ORCA_BUILD_COMMIT: ${{ github.sha }}
+        run: >
+          pnpm exec electron-builder --config config/electron-builder.config.cjs
+          --mac dmg --arm64 --publish never
+          -c.extraMetadata.version=${{ steps.ver.outputs.version }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: orca-mac-arm64-${{ steps.ver.outputs.version }}
+          path: dist/*.dmg
+          retention-days: 30
+          if-no-files-found: error
